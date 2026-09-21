@@ -10,6 +10,10 @@ const BACKDROP_BASE_URL = 'https://image.tmdb.org/t/p/w1280';
 const PROFILE_BASE_URL = 'https://image.tmdb.org/t/p/w185';
 const MAX_PAGE = 500; // TMDB does not serve pages beyond 500
 
+const CACHE_TTL_MS = 5 * 60 * 1000; // keep answers for 5 minutes
+const MAX_CACHE_ENTRIES = 500; // do not let the cache grow forever
+const REQUEST_TIMEOUT_MS = 8000; // give up on TMDB after 8 seconds
+
 // Our own sort names -> TMDB sort names
 const SORT_OPTIONS = {
   popularity: 'popularity.desc',
@@ -20,6 +24,9 @@ const SORT_OPTIONS = {
 
 app.use(cors());
 app.use(express.json());
+
+// The cache: a simple Map that remembers TMDB answers for a while
+const cache = new Map();
 
 // Turns one messy TMDB movie (from a list) into our own clean format
 function formatMovie(m) {
@@ -65,13 +72,38 @@ function formatMovieDetails(m) {
   };
 }
 
-// One helper that talks to TMDB. Throws an error if TMDB fails.
+// One helper that talks to TMDB, with a cache and a timeout.
+// Throws an error (with a .status number) if TMDB fails.
 async function tmdbGet(path, params = {}) {
+  const queryText = new URLSearchParams(params).toString();
+  const cacheKey = `${path}?${queryText}`; // no API key in here on purpose
+
+  // 1. Do we already have a fresh answer?
+  const cached = cache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    console.log('Cache HIT :', cacheKey);
+    return cached.data;
+  }
+  console.log('Cache MISS:', cacheKey);
+
+  // 2. Ask TMDB, but give up if it is too slow
   const query = new URLSearchParams({
     api_key: process.env.TMDB_API_KEY,
     ...params,
   });
-  const response = await fetch(`${TMDB_BASE_URL}${path}?${query}`);
+
+  let response;
+  try {
+    response = await fetch(`${TMDB_BASE_URL}${path}?${query}`, {
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch (err) {
+    const error = new Error(
+      err.name === 'TimeoutError' ? 'TMDB did not answer in time' : 'Could not reach TMDB'
+    );
+    error.status = err.name === 'TimeoutError' ? 504 : 502;
+    throw error;
+  }
 
   if (!response.ok) {
     const body = await response.text();
@@ -82,7 +114,23 @@ async function tmdbGet(path, params = {}) {
     throw error;
   }
 
-  return response.json();
+  const data = await response.json();
+
+  // 3. Remember the answer (errors are never saved)
+  cache.set(cacheKey, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+  if (cache.size > MAX_CACHE_ENTRIES) {
+    cache.delete(cache.keys().next().value); // remove the oldest entry
+  }
+
+  return data;
+}
+
+// Sends the right kind of error back to the client
+function sendError(res, error, message) {
+  if (error.status === 504) {
+    return res.status(504).json({ error: 'The movie service is too slow. Please try again.' });
+  }
+  return res.status(502).json({ error: message });
 }
 
 app.get('/', (req, res) => {
@@ -98,7 +146,7 @@ app.get('/api/genres', async (req, res) => {
     const data = await tmdbGet('/genre/movie/list');
     res.json({ genres: data.genres });
   } catch (error) {
-    res.status(502).json({ error: 'Could not load genres' });
+    sendError(res, error, 'Could not load genres');
   }
 });
 
@@ -154,7 +202,7 @@ app.get('/api/movies', async (req, res) => {
     });
   } catch (error) {
     console.error(error.message);
-    res.status(502).json({ error: 'Movie service failed' });
+    sendError(res, error, 'Movie service failed');
   }
 });
 
@@ -177,7 +225,7 @@ app.get('/api/movies/:id', async (req, res) => {
       return res.status(404).json({ error: 'Movie not found' });
     }
     console.error(error.message);
-    res.status(502).json({ error: 'Movie service failed' });
+    sendError(res, error, 'Movie service failed');
   }
 });
 
