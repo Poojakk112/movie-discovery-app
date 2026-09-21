@@ -6,6 +6,15 @@ const app = express();
 const PORT = 5000;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+const MAX_PAGE = 500; // TMDB does not serve pages beyond 500
+
+// Our own sort names -> TMDB sort names
+const SORT_OPTIONS = {
+  popularity: 'popularity.desc',
+  rating: 'vote_average.desc',
+  newest: 'primary_release_date.desc',
+  title: 'title.asc',
+};
 
 app.use(cors());
 app.use(express.json());
@@ -24,6 +33,24 @@ function formatMovie(m) {
   };
 }
 
+// One helper that talks to TMDB. Throws an error if TMDB fails.
+async function tmdbGet(path, params = {}) {
+  const query = new URLSearchParams({
+    api_key: process.env.TMDB_API_KEY,
+    ...params,
+  });
+  const response = await fetch(`${TMDB_BASE_URL}${path}?${query}`);
+
+  if (!response.ok) {
+    const body = await response.text();
+    console.error('TMDB status:', response.status);
+    console.error('TMDB reply:', body);
+    throw new Error('TMDB request failed');
+  }
+
+  return response.json();
+}
+
 app.get('/', (req, res) => {
   res.json({
     message: 'Hello! Movie API is running.',
@@ -31,29 +58,69 @@ app.get('/', (req, res) => {
   });
 });
 
+// List of genres, like [{ id: 28, name: 'Action' }, ...]
+app.get('/api/genres', async (req, res) => {
+  try {
+    const data = await tmdbGet('/genre/movie/list');
+    res.json({ genres: data.genres });
+  } catch (error) {
+    res.status(502).json({ error: 'Could not load genres' });
+  }
+});
+
+// Movies: /api/movies?page=2&sort=rating&genre=28
+// Search: /api/movies?q=batman&page=1
 app.get('/api/movies', async (req, res) => {
   try {
-    const url = `${TMDB_BASE_URL}/movie/popular?api_key=${process.env.TMDB_API_KEY}&page=1`;
-    const response = await fetch(url);
+    const page = Math.min(MAX_PAGE, Math.max(1, parseInt(req.query.page) || 1));
+    const searchText = String(req.query.q || '').trim().slice(0, 100);
 
-    if (!response.ok) {
-      const body = await response.text();
-      console.error('TMDB status:', response.status);
-      console.error('TMDB reply:', body);
-      return res.status(502).json({ error: 'Movie service failed' });
+    let data;
+
+    if (searchText) {
+      // Search mode
+      data = await tmdbGet('/search/movie', {
+        query: searchText,
+        page,
+        include_adult: 'false',
+      });
+    } else {
+      // Browse mode
+      const sortKey = SORT_OPTIONS[req.query.sort] ? req.query.sort : 'popularity';
+
+      const params = {
+        page,
+        sort_by: SORT_OPTIONS[sortKey],
+        include_adult: 'false',
+      };
+
+      // Only accept a genre that is a plain number
+      if (/^\d+$/.test(req.query.genre || '')) {
+        params.with_genres = req.query.genre;
+      }
+
+      // Movies with only a few votes give silly "top rated" results
+      if (sortKey === 'rating') {
+        params['vote_count.gte'] = '200';
+      }
+
+      // Do not show movies that are not released yet when sorting by newest
+      if (sortKey === 'newest') {
+        params['primary_release_date.lte'] = new Date().toISOString().slice(0, 10);
+      }
+
+      data = await tmdbGet('/discover/movie', params);
     }
-
-    const data = await response.json();
 
     res.json({
       page: data.page,
-      totalPages: data.total_pages,
+      totalPages: Math.min(data.total_pages, MAX_PAGE),
       totalResults: data.total_results,
       movies: data.results.map(formatMovie),
     });
   } catch (error) {
     console.error(error.message);
-    res.status(500).json({ error: 'Something went wrong' });
+    res.status(502).json({ error: 'Movie service failed' });
   }
 });
 
