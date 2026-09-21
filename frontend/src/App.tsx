@@ -1,13 +1,8 @@
 import { useEffect, useState } from 'react'
+import MovieCard from './components/MovieCard'
+import type { Movie } from './types'
 
 const API_URL = 'http://localhost:5000'
-
-type Movie = {
-  id: number
-  title: string
-  year: string | null
-  rating: number | null
-}
 
 function App() {
   const [movies, setMovies] = useState<Movie[]>([])
@@ -25,19 +20,22 @@ function App() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <p>Loading...</p>
-  if (error) return <p>{error}</p>
-
   return (
-    <div>
-      <h1>Movies</h1>
-      <ul>
-        {movies.map((movie) => (
-          <li key={movie.id}>
-            {movie.title} ({movie.year ?? 'N/A'}) - {movie.rating ?? 'No rating'}
-          </li>
-        ))}
-      </ul>
+    <div className="app">
+      <header className="app-header">
+        <h1>Movie Discovery</h1>
+      </header>
+
+      <main>
+        {loading && <p className="message">Loading...</p>}
+        {error && <p className="message">{error}</p>}
+
+        <div className="movie-grid">
+          {movies.map((movie) => (
+            <MovieCard key={movie.id} movie={movie} />
+          ))}
+        </div>
+      </main>
     </div>
   )
 }
