@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const wishlistRouter = require('./wishlist');
 
 const app = express();
 const PORT = 5000;
@@ -24,6 +25,7 @@ const SORT_OPTIONS = {
 
 app.use(cors());
 app.use(express.json());
+app.use('/api/wishlist', wishlistRouter);
 
 // The cache: a simple Map that remembers TMDB answers for a while
 const cache = new Map();
