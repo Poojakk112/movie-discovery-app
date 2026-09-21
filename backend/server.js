@@ -6,6 +6,8 @@ const app = express();
 const PORT = 5000;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+const BACKDROP_BASE_URL = 'https://image.tmdb.org/t/p/w1280';
+const PROFILE_BASE_URL = 'https://image.tmdb.org/t/p/w185';
 const MAX_PAGE = 500; // TMDB does not serve pages beyond 500
 
 // Our own sort names -> TMDB sort names
@@ -19,7 +21,7 @@ const SORT_OPTIONS = {
 app.use(cors());
 app.use(express.json());
 
-// Turns one messy TMDB movie into our own clean format
+// Turns one messy TMDB movie (from a list) into our own clean format
 function formatMovie(m) {
   return {
     id: m.id,
@@ -30,6 +32,36 @@ function formatMovie(m) {
     year: m.release_date ? m.release_date.slice(0, 4) : null,
     rating: m.vote_average ? Math.round(m.vote_average * 10) / 10 : null,
     genreIds: m.genre_ids || [],
+  };
+}
+
+// Turns one full TMDB movie (with credits and videos) into our clean detail format
+function formatMovieDetails(m) {
+  const cast = ((m.credits && m.credits.cast) || []).slice(0, 10).map((person) => ({
+    id: person.id,
+    name: person.name,
+    character: person.character || null,
+    photoUrl: person.profile_path ? `${PROFILE_BASE_URL}${person.profile_path}` : null,
+  }));
+
+  const videos = (m.videos && m.videos.results) || [];
+  const trailer = videos.find((v) => v.site === 'YouTube' && v.type === 'Trailer');
+
+  return {
+    id: m.id,
+    title: m.title || 'Untitled',
+    tagline: m.tagline || null,
+    overview: m.overview || 'No description available.',
+    posterUrl: m.poster_path ? `${IMAGE_BASE_URL}${m.poster_path}` : null,
+    backdropUrl: m.backdrop_path ? `${BACKDROP_BASE_URL}${m.backdrop_path}` : null,
+    releaseDate: m.release_date || null,
+    year: m.release_date ? m.release_date.slice(0, 4) : null,
+    runtime: m.runtime || null,
+    rating: m.vote_average ? Math.round(m.vote_average * 10) / 10 : null,
+    voteCount: m.vote_count || 0,
+    genres: m.genres || [],
+    cast,
+    trailerKey: trailer ? trailer.key : null,
   };
 }
 
@@ -45,7 +77,9 @@ async function tmdbGet(path, params = {}) {
     const body = await response.text();
     console.error('TMDB status:', response.status);
     console.error('TMDB reply:', body);
-    throw new Error('TMDB request failed');
+    const error = new Error('TMDB request failed');
+    error.status = response.status;
+    throw error;
   }
 
   return response.json();
@@ -119,6 +153,29 @@ app.get('/api/movies', async (req, res) => {
       movies: data.results.map(formatMovie),
     });
   } catch (error) {
+    console.error(error.message);
+    res.status(502).json({ error: 'Movie service failed' });
+  }
+});
+
+// One movie with full details: /api/movies/278
+app.get('/api/movies/:id', async (req, res) => {
+  const { id } = req.params;
+
+  // The id must be a plain number
+  if (!/^\d+$/.test(id)) {
+    return res.status(400).json({ error: 'Movie id must be a number' });
+  }
+
+  try {
+    const data = await tmdbGet(`/movie/${id}`, {
+      append_to_response: 'credits,videos',
+    });
+    res.json(formatMovieDetails(data));
+  } catch (error) {
+    if (error.status === 404) {
+      return res.status(404).json({ error: 'Movie not found' });
+    }
     console.error(error.message);
     res.status(502).json({ error: 'Movie service failed' });
   }
