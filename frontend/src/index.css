@@ -29,7 +29,7 @@ body {
 }
 
 .search-bar {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .search-bar input {
@@ -50,6 +50,42 @@ body {
 
 .search-bar input::placeholder {
   color: var(--muted);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.filters select {
+  min-width: 160px;
+  padding: 9px 10px;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid #2c3345;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+}
+
+.filters select:focus {
+  border-color: var(--accent);
+}
+
+.filters select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .message {

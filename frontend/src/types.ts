@@ -8,3 +8,8 @@ export type Movie = {
   rating: number | null
   genreIds: number[]
 }
+
+export type Genre = {
+  id: number
+  name: string
+}
