@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
+import { Route, Routes } from 'react-router-dom'
 import Filters from './components/Filters'
 import MovieCard from './components/MovieCard'
 import SearchBar from './components/SearchBar'
 import { useDebounce } from './hooks/useDebounce'
+import MovieDetails from './pages/MovieDetails'
 import type { Genre, Movie } from './types'
 
 const API_URL = 'http://localhost:5000'
 
-function App() {
+function HomePage() {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search.trim(), 400)
 
@@ -19,7 +21,6 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Load the genre list once, when the page opens
   useEffect(() => {
     fetch(`${API_URL}/api/genres`)
       .then((res) => {
@@ -27,10 +28,9 @@ function App() {
         return res.json()
       })
       .then((data) => setGenres(data.genres))
-      .catch(() => setGenres([])) // the dropdown simply shows "All genres"
+      .catch(() => setGenres([]))
   }, [])
 
-  // Load movies whenever the search, genre or sort changes
   useEffect(() => {
     const controller = new AbortController()
 
@@ -55,7 +55,7 @@ function App() {
         setLoading(false)
       })
       .catch((err) => {
-        if (err.name === 'AbortError') return // cancelled on purpose, not an error
+        if (err.name === 'AbortError') return
         setMovies([])
         setError('Could not load movies. Please try again.')
         setLoading(false)
@@ -68,7 +68,7 @@ function App() {
   const noResults = !loading && !error && movies.length === 0
 
   return (
-    <div className="app">
+    <>
       <header className="app-header">
         <h1>Movie Discovery</h1>
         <SearchBar value={search} onChange={setSearch} />
@@ -99,6 +99,17 @@ function App() {
           ))}
         </div>
       </main>
+    </>
+  )
+}
+
+function App() {
+  return (
+    <div className="app">
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/movie/:id" element={<MovieDetails />} />
+      </Routes>
     </div>
   )
 }
