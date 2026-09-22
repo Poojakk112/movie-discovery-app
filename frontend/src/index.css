@@ -23,9 +23,29 @@ body {
   padding: 16px;
 }
 
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .app-header h1 {
   margin: 8px 0 16px;
   font-size: 1.6rem;
+}
+
+.wishlist-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.wishlist-link:hover {
+  text-decoration: underline;
 }
 
 .search-bar {
@@ -101,11 +121,15 @@ body {
 }
 
 .movie-card {
-  display: block;
+  position: relative;
   background: var(--card);
   border-radius: 10px;
   overflow: hidden;
   padding-bottom: 10px;
+}
+
+.movie-card-link {
+  display: block;
   text-decoration: none;
   color: inherit;
 }
@@ -143,6 +167,32 @@ body {
   font-weight: 600;
   padding: 3px 7px;
   border-radius: 6px;
+}
+
+.wishlist-button {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease;
+}
+
+.wishlist-button:hover {
+  transform: scale(1.1);
+}
+
+.wishlist-button.saved {
+  color: #ff5c7a;
 }
 
 .movie-title {

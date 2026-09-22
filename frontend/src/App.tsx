@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Link, Route, Routes } from 'react-router-dom'
 import Filters from './components/Filters'
 import MovieCard from './components/MovieCard'
 import SearchBar from './components/SearchBar'
 import { useDebounce } from './hooks/useDebounce'
 import MovieDetails from './pages/MovieDetails'
+import Wishlist from './pages/Wishlist'
 import type { Genre, Movie } from './types'
 
 const API_URL = 'http://localhost:5000'
@@ -70,7 +71,12 @@ function HomePage() {
   return (
     <>
       <header className="app-header">
-        <h1>Movie Discovery</h1>
+        <div className="header-top">
+          <h1>Movie Discovery</h1>
+          <Link to="/wishlist" className="wishlist-link">
+            ♥ My Wishlist
+          </Link>
+        </div>
         <SearchBar value={search} onChange={setSearch} />
         <Filters
           genres={genres}
@@ -109,6 +115,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/movie/:id" element={<MovieDetails />} />
+        <Route path="/wishlist" element={<Wishlist />} />
       </Routes>
     </div>
   )
