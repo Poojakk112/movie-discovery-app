@@ -218,6 +218,32 @@ body {
   }
 }
 
+.load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
+}
+
+.load-more button {
+  padding: 10px 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid #2c3345;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.load-more button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.load-more button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Details page */
 
 .details-page {

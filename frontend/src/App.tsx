@@ -19,7 +19,11 @@ function HomePage() {
   const [genres, setGenres] = useState<Genre[]>([])
 
   const [movies, setMovies] = useState<Movie[]>([])
-  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+
+  const [loading, setLoading] = useState(true) // first load of a new search/filter
+  const [loadingMore, setLoadingMore] = useState(false) // loading page 2, 3...
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -32,13 +36,24 @@ function HomePage() {
       .catch(() => setGenres([]))
   }, [])
 
+  // Whenever the search, genre or sort changes, start over at page 1
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedSearch, genre, sort])
+
+  // Loads whichever page number is current. Page 1 replaces the list; later pages add to it.
   useEffect(() => {
     const controller = new AbortController()
 
-    setLoading(true)
+    if (page === 1) {
+      setLoading(true)
+    } else {
+      setLoadingMore(true)
+    }
     setError(null)
 
     const params = new URLSearchParams()
+    params.set('page', String(page))
     if (debouncedSearch) {
       params.set('q', debouncedSearch)
     } else {
@@ -52,21 +67,34 @@ function HomePage() {
         return res.json()
       })
       .then((data) => {
-        setMovies(data.movies)
+        setTotalPages(data.totalPages)
+        setMovies((prev) => {
+          const combined = page === 1 ? data.movies : [...prev, ...data.movies]
+          // Remove any duplicate movie id (can happen with TMDB search paging)
+          const seen = new Set<number>()
+          return combined.filter((m) => {
+            if (seen.has(m.id)) return false
+            seen.add(m.id)
+            return true
+          })
+        })
         setLoading(false)
+        setLoadingMore(false)
       })
       .catch((err) => {
         if (err.name === 'AbortError') return
-        setMovies([])
+        if (page === 1) setMovies([])
         setError('Could not load movies. Please try again.')
         setLoading(false)
+        setLoadingMore(false)
       })
 
     return () => controller.abort()
-  }, [debouncedSearch, genre, sort])
+  }, [debouncedSearch, genre, sort, page])
 
   const isSearching = debouncedSearch !== ''
   const noResults = !loading && !error && movies.length === 0
+  const canLoadMore = !loading && !error && page < totalPages
 
   return (
     <>
@@ -104,6 +132,18 @@ function HomePage() {
             <MovieCard key={movie.id} movie={movie} />
           ))}
         </div>
+
+        {canLoadMore && (
+          <div className="load-more">
+            <button
+              type="button"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={loadingMore}
+            >
+              {loadingMore ? 'Loading...' : 'Load more'}
+            </button>
+          </div>
+        )}
       </main>
     </>
   )
