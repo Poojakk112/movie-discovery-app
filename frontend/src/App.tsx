@@ -8,7 +8,7 @@ import MovieDetails from './pages/MovieDetails'
 import Wishlist from './pages/Wishlist'
 import type { Genre, Movie } from './types'
 
-const API_URL = 'http://localhost:5000'
+import { API_URL } from './lib/config'
 
 function HomePage() {
   const [search, setSearch] = useState('')
@@ -69,7 +69,7 @@ function HomePage() {
       .then((data) => {
         setTotalPages(data.totalPages)
         setMovies((prev) => {
-          const combined = page === 1 ? data.movies : [...prev, ...data.movies]
+          const combined: Movie[] = page === 1 ? data.movies : [...prev, ...data.movies]
           // Remove any duplicate movie id (can happen with TMDB search paging)
           const seen = new Set<number>()
           return combined.filter((m) => {

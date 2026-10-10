@@ -1,7 +1,7 @@
 import { getDeviceId } from './deviceId'
 import type { Movie } from '../types'
 
-const API_URL = 'http://localhost:5000'
+import { API_URL } from './config'
 
 function headers() {
   return {

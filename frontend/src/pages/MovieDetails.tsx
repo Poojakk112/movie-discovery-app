@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
-const API_URL = 'http://localhost:5000'
+import { API_URL } from '../lib/config'
 
 type CastMember = {
   id: number
