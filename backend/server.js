@@ -4,7 +4,7 @@ const cors = require('cors');
 const wishlistRouter = require('./wishlist');
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 const BACKDROP_BASE_URL = 'https://image.tmdb.org/t/p/w1280';
