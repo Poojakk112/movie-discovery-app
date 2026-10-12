@@ -2,6 +2,16 @@
 
 A full-stack movie discovery app built with React (TypeScript, Vite) and a Node.js/Express backend, using TMDB for movie data.
 
+**Live Demo:** https://movie-discovery-app-ashy.vercel.app
+
+## Demo Video
+
+
+
+https://github.com/user-attachments/assets/c0a58314-3680-4ee0-ad6a-f8e9ce80b5fa
+
+
+
 ## Setup Instructions
 
 ### Backend
