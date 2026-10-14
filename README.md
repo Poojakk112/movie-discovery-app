@@ -1,4 +1,4 @@
-﻿# Movie Discovery App
+# Movie Discovery App
 
 A full-stack movie discovery app built with React (TypeScript, Vite) and a Node.js/Express backend, using TMDB for movie data.
 
@@ -11,6 +11,12 @@ A full-stack movie discovery app built with React (TypeScript, Vite) and a Node.
 https://github.com/user-attachments/assets/c0a58314-3680-4ee0-ad6a-f8e9ce80b5fa
 
 
+
+## 📸 Screenshots
+
+| Browse | Search | Movie Details |
+|---|---|---|
+| ![Browse movies](screenshots/home.jpg) | ![Search](screenshots/search.jpg) | ![Movie details](screenshots/details.jpg) |
 
 ## Setup Instructions
 
